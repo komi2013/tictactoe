@@ -1,0 +1,106 @@
+var express = require('express')
+  , https = require('https')
+  , path = require('path')
+  , io = require('socket.io')
+  , fs = require('fs')
+
+var options = {
+    key: fs.readFileSync('/etc/httpd/conf.d/private.key'), // 秘密鍵
+    cert: fs.readFileSync('/etc/httpd/conf.d/public.crt'), // 公開鍵
+};
+ 
+var app = express()
+  , server = require('https').createServer(options,app)
+  , io = io.listen(server);
+ 
+app.configure(function(){
+  app.set('port', process.env.PORT || 3000);
+  app.set('views', __dirname + '/views');
+  app.set('view engine', 'jade');
+  app.use(express.favicon());
+  app.use(express.logger('dev'));
+  app.use(express.bodyParser());
+  app.use(express.methodOverride());
+  app.use(app.router);
+  app.use(express.static(path.join(__dirname, 'public')));
+});
+ 
+app.configure('development', function(){
+  app.use(express.errorHandler());
+});
+ 
+server.listen(app.get('port'))
+var guest = 0;
+var heya = 1;
+chat = io.sockets.on('connection', function(client) {
+// ++room;
+++guest;
+heya = Math.ceil((guest / 2));
+// console.log('heya no. ' + heya);
+
+    // ※2 クライアントに接続成功を送信
+    client.emit('connected');
+
+    client.on('init', function() {
+//         client.set('guest', guest);
+//         client.set('heya', heya);
+//         client.set('name', req.name);
+      var u_data = new Array();
+      u_data[0] = guest;  
+      u_data[1] = heya;  
+      client.join(guest);
+      chat.to(guest).emit('session', u_data);
+      client.leave(guest);
+      client.join(heya);
+      chat.to(heya).emit('msg', heya);
+      // ※4 クライアントを部屋に入室させる
+//         client.join(heya);
+    });
+
+    client.on('msg', function(data) {
+//       client.join(data[1]);
+//       var guest; 
+//       var room = 1;
+
+//       client.get('room', function(err, _room) {
+//           room = data.room;
+//       });
+//       client.get('name', function(err, _name) {
+//           guest = guest;
+//       });
+      console.log('guest ' + data[0]);
+      console.log('room ' + data[1]);
+      console.log('msg ' + data[2]);
+
+      // ※6 受け取ったメッセージを部屋の皆に送信
+//         var https = require('https');
+//         var options = {
+//           host: 'etopet.komahana.info',
+//           path: '/ja/in/score/'
+//         };
+      
+//         https.get(options, function(res) {
+//           console.log('STATUS: ' + res.statusCode);
+//           console.log('HEADERS: ' + JSON.stringify(res.headers));
+//         }).on('error', function(e) {
+//           console.log('ERROR: ' + e.message);
+//         });
+
+      // ※6 受け取ったメッセージを部屋の皆に送信
+      chat.to(data[1]).emit('msg', ": "+data[2]);
+    });
+
+    // ※8 退室
+//     client.on('disconnect', function() {
+//         var room, name;
+// 
+//         client.get('room', function(err, _room) {
+//             room = _room;
+//         });
+//         client.get('name', function(err, _name) {
+//             name = _name;
+//         });
+//         client.leave(room);
+//         chat.to(room).emit('message', name + " さんが退出");
+//     });
+});
